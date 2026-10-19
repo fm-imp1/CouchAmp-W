@@ -5,6 +5,7 @@ import 'package:finamp/components/HomeScreen/home_screen_content.dart';
 import 'package:finamp/components/MusicScreen/artist_type_selection_row.dart';
 import 'package:finamp/components/MusicScreen/music_screen_tab_view.dart';
 import 'package:finamp/components/MusicScreen/sort_and_filter_row.dart';
+import 'package:finamp/components/Shortcuts/gamepad_shortcuts.dart';
 import 'package:finamp/components/global_snackbar.dart';
 import 'package:finamp/components/now_playing_bar.dart';
 import 'package:finamp/l10n/app_localizations.dart';
@@ -57,6 +58,10 @@ class _MusicScreenState extends ConsumerState<MusicScreen> with TickerProviderSt
 
   final _audioServiceHelper = GetIt.instance<AudioServiceHelper>();
   final _jellyfinApiHelper = GetIt.instance<JellyfinApiHelper>();
+
+  // --- gamepad drawer support ---
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _scaffoldRegistered = false;
 
   QueueItemSource get musicScreenSource => QueueItemSource.rawId(
     type: ref.watch(finampSettingsProvider.onlyShowFavorites)
@@ -114,6 +119,12 @@ class _MusicScreenState extends ConsumerState<MusicScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    // Unregister this screen's scaffold so global gamepad actions no longer
+    // try to drive a drawer that no longer exists.
+    final scaffoldState = _scaffoldKey.currentState;
+    if (scaffoldState != null) {
+      MusicScreenScaffoldRegistry.unregister(scaffoldState);
+    }
     _tabController?.dispose();
     textEditingController.dispose();
     super.dispose();
@@ -190,6 +201,17 @@ class _MusicScreenState extends ConsumerState<MusicScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    // Register this scaffold with the gamepad drawer registry once it exists,
+    // so global controller actions (View button) can open the drawer.
+    if (!_scaffoldRegistered) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final state = _scaffoldKey.currentState;
+        if (state != null) {
+          MusicScreenScaffoldRegistry.register(state);
+          _scaffoldRegistered = true;
+        }
+      });
+    }
     if (_tabController == null) {
       _buildTabController();
     }
@@ -234,6 +256,7 @@ class _MusicScreenState extends ConsumerState<MusicScreen> with TickerProviderSt
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
         extendBody: true,
         appBar: FinampMusicScreenHeader(
           singleTabConfig: widget.singleTabConfig,

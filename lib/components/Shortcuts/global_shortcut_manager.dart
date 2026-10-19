@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:finamp/components/Shortcuts/gamepad_shortcuts.dart';
 import 'package:finamp/components/Shortcuts/music_control_shortcuts.dart';
 import 'package:finamp/utils/platform_helper.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,10 @@ class GlobalShortcuts {
     const TogglePlaybackOrderIntent(): SingleActivator(LogicalKeyboardKey.keyS, control: true),
     const BackIntent(): SingleActivator(LogicalKeyboardKey.escape),
     const FullscreenIntent(): SingleActivator(LogicalKeyboardKey.f11),
+    // --- gamepad-mapped bindings (configure matching Steam Input keystrokes) ---
+    const ToggleSidebarIntent(): SingleActivator(LogicalKeyboardKey.keyB, control: true),
+    const OpenNowPlayingIntent(): SingleActivator(LogicalKeyboardKey.keyM, control: true),
+    const ToggleGamepadPromptsIntent(): SingleActivator(LogicalKeyboardKey.keyG, control: true),
   };
 
   static Map<ShortcutActivator, Intent> get shortcutMap {
@@ -46,6 +51,9 @@ class GlobalShortcuts {
     final Map<Type, Action<Intent>> map = {};
     map.addAll(WidgetsApp.defaultActions);
     map.addAll(getMusicControlActions());
+    // Added after the music control actions so the drawer-aware BackIntent
+    // defined in getGamepadActions() overrides the stock one.
+    map.addAll(getGamepadActions());
     return map;
   }
 
